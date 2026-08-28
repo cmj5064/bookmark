@@ -442,6 +442,8 @@
     </div>
     <div class="top-actions-sub">
       <button type="button" class="btn-sub" id="btnLoadOther" title="다른 폴더의 CSV 선택">다른 경로</button>
+      <span class="dot" aria-hidden="true">·</span>
+      <button type="button" class="btn-sub" id="btnLoadNotion" title="노션 페이지에서 가져오기">노션</button>
     </div>
     <div class="nav-item" id="navAll" data-view="all">전체보기 <span class="count" id="cntAll">0</span></div>
     <div class="nav-item" id="navUncat" data-view="uncat" data-drop="uncat">미분류 <span class="count" id="cntUncat">0</span></div>
@@ -977,7 +979,7 @@ function renderMain(){
   syncSortDropUI(state.ui.sort||'new');
   const cards=document.getElementById('cards'); cards.innerHTML='';
   const list=viewBookmarks();
-  if(!list.length){ cards.innerHTML='<div class="empty">표시할 북마크가 없어요.<br>좌측 [불러오기]로 .bookmark 폴더의 CSV를 가져오거나,<br>다른 경로에서 불러와 보세요.</div>'; return; }
+  if(!list.length){ cards.innerHTML='<div class="empty">표시할 북마크가 없어요.<br>좌측 [불러오기]로 .bookmark 폴더의 CSV를 가져오거나,<br>다른 경로·노션에서 불러와 보세요.</div>'; return; }
   if(state.ui.sort==='custom'){
     cards.insertAdjacentHTML('beforeend','<div class="empty" style="padding:6px 0 0;grid-column:1/-1;font-size:12.5px">↕ 카드를 드래그해 순서를 바꿀 수 있어요</div>');
   }
@@ -1761,6 +1763,26 @@ function openSettings(){
     </label>
     <div class="hint">폴더 수정에서 등록한 속성 태그와 북마크 태그가 겹치면, 이동할 때 폴더를 추천해줘요.</div>
     <hr style="border:none;border-top:1px solid var(--border-soft);margin:20px 0">
+    <label>노션 연동</label>
+    <div class="hint">
+      노션 북마크 페이지를 이 앱으로 가져오려면 Integration 토큰이 필요해요.
+      <ol>
+        <li><a href="https://app.notion.com/developers/tokens" target="_blank" rel="noopener">노션 토큰 페이지</a>에서 토큰을 발급받아요.</li>
+        <li>북마크 페이지 오른쪽 위 <b>···</b> → <b>연결</b>에서 방금 만든 Integration을 추가해요. (연결하지 않으면 페이지를 읽을 수 없어요.)</li>
+        <li>아래에 토큰과 페이지 ID를 넣고 저장한 뒤, 연결 테스트 또는 불러오기를 누르면 돼요.</li>
+      </ol>
+      토큰은 이 PC에만 저장되고 git에는 올라가지 않아요.
+    </div>
+    <label>Integration 토큰</label>
+    <input type="password" id="notionToken" placeholder="ntn_ 또는 secret_ 로 시작하는 값" autocomplete="off">
+    <label>페이지 / 데이터베이스 ID</label>
+    <input type="text" id="notionPageId" placeholder="페이지 링크에 있는 32자리 ID" spellcheck="false">
+    <div class="row" style="margin-top:8px;flex-wrap:wrap">
+      <button class="btn" id="notionSave">저장</button>
+      <button class="btn" id="notionTest">연결 테스트</button>
+      <button class="btn" id="notionImport">노션에서 불러오기</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border-soft);margin:20px 0">
     <label>데이터 백업</label>
     <div class="row">
       <button class="btn" id="expBackup">백업 내보내기(.json)</button>
@@ -1813,6 +1835,7 @@ logoSizeNum.oninput = e=>{
 };
   document.getElementById('expBackup').onclick=exportBackup;
   document.getElementById('impBackup').onclick=()=>document.getElementById('backupFile').click();
+  bindNotionSettings();
   document.getElementById('resetAll').onclick=()=>{
     openModal(`<h2>전체 초기화</h2>
       <p style="color:var(--muted)">모든 데이터(북마크·폴더·설정)를 지울까요?<br>되돌릴 수 없습니다.</p>
@@ -1830,6 +1853,61 @@ function exportBackup(){
   const now=new Date(); const pad=n=>String(n).padStart(2,'0');
   const dateStr=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
   a.download=`북마크정리기_백업_${dateStr}.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function hasNotionApi(){
+  return !!(window.electronAPI && window.electronAPI.importNotion);
+}
+function bindNotionSettings(){
+  const tokenEl=document.getElementById('notionToken');
+  const idEl=document.getElementById('notionPageId');
+  if(!tokenEl || !idEl) return;
+  if(!hasNotionApi()){
+    tokenEl.disabled=true; idEl.disabled=true;
+    document.getElementById('notionSave').disabled=true;
+    document.getElementById('notionTest').disabled=true;
+    document.getElementById('notionImport').disabled=true;
+    return;
+  }
+  window.electronAPI.getNotionConfig().then(cfg=>{
+    if(!document.getElementById('notionToken')) return;
+    tokenEl.value=cfg.token||'';
+    idEl.value=cfg.pageId||'';
+  });
+  document.getElementById('notionSave').onclick=async()=>{
+    await window.electronAPI.saveNotionConfig({ token:tokenEl.value.trim(), pageId:idEl.value.trim() });
+    showToast('노션 설정을 저장했어요.');
+  };
+  document.getElementById('notionTest').onclick=async()=>{
+    await window.electronAPI.saveNotionConfig({ token:tokenEl.value.trim(), pageId:idEl.value.trim() });
+    const res=await window.electronAPI.testNotion();
+    if(!res.ok){ showToast(res.error||'연결에 실패했어요.'); return; }
+    if(res.kind==='database') showToast(`데이터베이스에 연결됐어요: ${res.title||'제목 없음'}`);
+    else showToast(`페이지에 연결됐어요. DB ${res.databaseCount||0}개, 북마크 블록 ${res.blockCount||0}개`);
+  };
+  document.getElementById('notionImport').onclick=async()=>{
+    await window.electronAPI.saveNotionConfig({ token:tokenEl.value.trim(), pageId:idEl.value.trim() });
+    closeModal();
+    await importFromNotion();
+  };
+}
+async function importFromNotion(){
+  if(!hasNotionApi()){
+    showToast('노션 불러오기는 데스크톱 앱에서만 사용할 수 있어요.');
+    return;
+  }
+  const cfg=await window.electronAPI.getNotionConfig();
+  if(!cfg.token){
+    showToast('환경설정에서 노션 Integration 토큰을 저장해 주세요.');
+    openSettings();
+    return;
+  }
+  showToast('노션에서 불러오는 중...');
+  const res=await window.electronAPI.importNotion();
+  if(!res.ok){ showToast(res.error||'노션에서 불러오지 못했어요.'); return; }
+  const added=mergeBookmarks(res.bookmarks);
+  state.ui.page=1; render();
+  showToast(`${added}개의 새 북마크를 노션에서 불러왔어요. (이미 있던 항목은 건너뜀)`);
 }
 
 /* ============================================================
@@ -1872,6 +1950,7 @@ async function loadCsvFromOtherPath(){
 }
 document.getElementById('btnLoad').onclick=()=>loadDefaultCsvs();
 document.getElementById('btnLoadOther').onclick=()=>loadCsvFromOtherPath();
+document.getElementById('btnLoadNotion').onclick=()=>importFromNotion();
 document.getElementById('csvFile').onchange=e=>{
   const files=[...e.target.files]; if(!files.length) return;
   importCSVFiles(files);

@@ -16,6 +16,7 @@
     "electron-builder": "^26.15.3"
   },
   "dependencies": {
+    "@notionhq/client": "^2.3.0",
     "electron-updater": "^6.3.9"
   },
   "build": {
