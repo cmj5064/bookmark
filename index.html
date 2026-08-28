@@ -11,9 +11,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Gamja+Flower&family=Gowun+Batang&family=Gowun+Dodum&family=Nanum+Gothic&family=Nanum+Myeongjo&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --accent:#ff5c8a;
-    --bg:#fffafc;
-    --text:#3a2f33;
+    --accent:#4F8A4A;
+    --bg:#F3F7EC;
+    --text:#2A3B28;
     --font:'Noto Sans KR',"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
 
     --surface: color-mix(in srgb, var(--accent) 4%, var(--bg));
@@ -511,7 +511,8 @@
    ============================================================ */
 const STORE_KEY = 'xbm_organizer_v1';
 const DEFAULT_LOGO = 'build/title-logo.png';
-const DEFAULT_SETTINGS = { accent:'#ff5c8a', bg:'#fffafc', text:'#3a2f33', font:'noto', logo:null, logoSize:120, columns:'auto', tagRecommend:true };
+const FROG = { accent:'#4F8A4A', bg:'#F3F7EC', text:'#2A3B28' };
+const DEFAULT_SETTINGS = { ...FROG, font:'noto', logo:null, logoSize:120, columns:'auto', tagRecommend:true };
 let state = {
   categories: [],          // {id, emoji, name, collapsed, folders:[{id,name}]}
   bookmarks: [],           // {id, tags[], author, handle, content, imageUrl, hasVideo, date, postUrl, links[], folderId, source, sourceId}
@@ -529,6 +530,7 @@ const FONTS = {
   'gamja':"'Gamja Flower', cursive",
 };
 const THEMES = [
+  {name:'개구리', accent:'#4F8A4A', bg:'#F3F7EC', text:'#2A3B28'},
   {name:'화이트앤핑크', accent:'#ff5c8a', bg:'#fffafc', text:'#3a2f33'},
   {name:'화이트앤블루', accent:'#4a90e2', bg:'#fafdff', text:'#2b3440'},
   {name:'화이트앤민트', accent:'#27b89a', bg:'#f8fffd', text:'#243a35'},
