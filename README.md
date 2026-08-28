@@ -34,7 +34,7 @@ X 북마크와 노션 북마크를 카테고리·폴더로 정리하는 도구�
 | `북마크정리기 x.x.x.exe` | Windows 포터블 (설치 불필요) |
 | `북마크정리기-x.x.x.dmg` | macOS (Intel + Apple Silicon) |
 
-또는 [브라우저](https://min4sang.github.io/BMBOX)에서 바로 사용할 수도 있어요. 브라우저에서는 `.bookmark` 기본 경로와 노션 API를 쓸 수 없고, 파일 선택 불러오기만 됩니다.
+또는 [브라우저](https://cmj5064.github.io/bookmark/)에서 바로 사용할 수도 있어요. 브라우저에서는 `.bookmark` 기본 경로와 노션 API를 쓸 수 없고, 파일 선택 불러오기만 됩니다.
 
 ---
 
