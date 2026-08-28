@@ -86,13 +86,24 @@
     letter-spacing:.5px; padding:0; margin:30px 0 20px; user-select:none;
   }
   .logo img{display:block; margin:0 auto; width:auto; height:auto; max-width:min(500px,100%); max-height:500px; object-fit:contain}
-  .top-actions{display:flex; gap:8px; margin-bottom:20px}
-  .top-actions button{
+  .top-actions{display:flex; gap:8px; margin-bottom:4px}
+  .top-actions > button{
     flex:1; padding:8px 4px; border:1px solid var(--border); border-radius:10px;
     background:transparent; color:var(--accent); font-weight:700; font-size:13px;
     transition:.15s;
   }
-  .top-actions button:hover{background:var(--accent-soft)}
+  .top-actions > button:hover{background:var(--accent-soft)}
+  .top-actions-sub{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin:0 0 16px;
+  }
+  .top-actions-sub .btn-sub{
+    padding:0; border:none; background:transparent;
+    color:var(--muted); font-weight:500; font-size:10px;
+    letter-spacing:-0.02em; line-height:1.2; white-space:nowrap;
+  }
+  .top-actions-sub .btn-sub:hover{color:var(--accent); text-decoration:underline}
+  .top-actions-sub .dot{color:var(--muted); font-size:10px; opacity:.4; user-select:none}
   .nav-item{
     padding:9px 12px; border-radius:10px; font-weight:600; font-size:14px;
     color:var(--text); display:flex; justify-content:space-between; align-items:center;
@@ -303,7 +314,7 @@
   .modal-scroll::-webkit-scrollbar-track-piece{margin:22px 0}
   .modal h2{margin:0 0 16px; font-size:20px; color:var(--accent)}
   .modal label{display:block; font-size:13px; font-weight:700; margin:12px 0 5px; color:var(--text)}
-  .modal input[type=text],.modal textarea,.modal select{
+  .modal input[type=text],.modal input[type=password],.modal textarea,.modal select{
     width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:10px;
     background:var(--card); color:var(--text); font-family:inherit; font-size:14px; outline:none;
   }
@@ -316,6 +327,7 @@
   .btn.primary{background:var(--accent); color:var(--accent-text); border-color:var(--accent)}
   .btn.primary:hover{filter:brightness(1.08)}
   .btn.ghost{border:none; background:transparent; color:var(--muted)}
+  .btn:disabled,.top-actions-sub .btn-sub:disabled,.top-actions > button:disabled{opacity:.45; cursor:not-allowed}
   .btn.ghost:hover{background:var(--surface-2); color:var(--accent)}
   .full-img{width:100%; max-height:320px; object-fit:cover; border-radius:14px; margin-bottom:14px}
   .full-img-logo{object-fit:contain; max-height:200px; padding:24px; background:var(--surface-2)}
@@ -336,7 +348,10 @@
   .swatch.sel{box-shadow:0 0 0 3px var(--accent)}
   .linkrow{display:flex; gap:8px; margin-top:6px}
   .linkrow input{flex:1}
-  .hint{font-size:12px; color:var(--muted); margin-top:4px}
+  .hint{font-size:12px; color:var(--muted); margin-top:4px; line-height:1.55}
+  .hint a{font-weight:700}
+  .hint ol{margin:6px 0 0; padding-left:18px}
+  .hint li{margin:4px 0}
   .size-input::-webkit-outer-spin-button,
 .size-input::-webkit-inner-spin-button{
   -webkit-appearance:none;
@@ -422,8 +437,11 @@
   <aside class="sidebar" id="sidebar">
     <div class="logo" id="logo">로고</div>
     <div class="top-actions">
-      <button id="btnLoad">불러오기</button>
-      <button id="btnCreate">카테고리 생성</button>
+      <button type="button" id="btnLoad">불러오기</button>
+      <button type="button" id="btnCreate">카테고리 생성</button>
+    </div>
+    <div class="top-actions-sub">
+      <button type="button" class="btn-sub" id="btnLoadOther" title="다른 폴더의 CSV 선택">다른 경로</button>
     </div>
     <div class="nav-item" id="navAll" data-view="all">전체보기 <span class="count" id="cntAll">0</span></div>
     <div class="nav-item" id="navUncat" data-view="uncat" data-drop="uncat">미분류 <span class="count" id="cntUncat">0</span></div>
@@ -493,10 +511,11 @@
    ============================================================ */
 const STORE_KEY = 'xbm_organizer_v1';
 const DEFAULT_LOGO = 'build/title-logo.png';
+const DEFAULT_SETTINGS = { accent:'#ff5c8a', bg:'#fffafc', text:'#3a2f33', font:'noto', logo:null, logoSize:120, columns:'auto', tagRecommend:true };
 let state = {
   categories: [],          // {id, emoji, name, collapsed, folders:[{id,name}]}
-  bookmarks: [],           // {id, tags[], author, handle, content, imageUrl, hasVideo, date, postUrl, links[], folderId}
-  settings: { accent:'#ff5c8a', bg:'#fffafc', text:'#3a2f33', font:'noto', logo:null, logoSize:120, columns:'auto', tagRecommend:true },
+  bookmarks: [],           // {id, tags[], author, handle, content, imageUrl, hasVideo, date, postUrl, links[], folderId, source, sourceId}
+  settings: Object.assign({}, DEFAULT_SETTINGS),
   ui: { view:{type:'all'}, sidebarWidth:230, sort:'new', page:1, perPage:50 },
 };
 
@@ -531,7 +550,7 @@ function applyLoadedData(raw){
   if(!raw) return;
   try{
     const d = JSON.parse(raw); state = Object.assign(state, d);
-    state.settings = Object.assign({accent:'#ff5c8a',bg:'#fffafc',text:'#3a2f33',font:'noto',logo:null, logoSize:120, columns:'auto', tagRecommend:true}, d.settings||{});
+    state.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings||{});
     state.ui = Object.assign({view:{type:'all'}, sidebarWidth:230, sort:'new', page:1, perPage:50}, d.ui||{});
     if(!state.ui.sidebarWidth || state.ui.sidebarWidth>=360) state.ui.sidebarWidth=230;
     state.ui.sidebarWidth=Math.min(520,Math.max(175,state.ui.sidebarWidth));
@@ -579,16 +598,46 @@ function parseCSV(text){
   if(cur!==''||row.length){ row.push(cur); rows.push(row); }
   return rows.filter(r=>r.length>1 || (r.length===1 && r[0].trim()!==''));
 }
-function importCSV(text){
+function headerIndex(header, names){
+  const lower = header.map(h=>String(h).trim().toLowerCase());
+  for(const n of names){
+    const needle = n.toLowerCase();
+    const exact = lower.findIndex(h=>h===needle);
+    if(exact>=0) return exact;
+  }
+  for(const n of names){
+    const needle = n.toLowerCase();
+    const i = lower.findIndex(h=>h.includes(needle));
+    if(i>=0) return i;
+  }
+  return -1;
+}
+function detectCsvSource(header){
+  const h = header.map(x=>String(x).toLowerCase()).join('|');
+  if(h.includes('작성자') || h.includes('계정') || h.includes('동영상')) return 'x';
+  if((h.includes('name') || h.includes('제목') || h.includes('이름')) && (h.includes('url') || h.includes('link') || h.includes('링크'))) return 'notion';
+  return 'csv';
+}
+function splitTags(raw){
+  if(!raw) return [];
+  return String(raw).split(/[/;,|]/).map(s=>s.trim()).filter(Boolean);
+}
+function importCSV(text, sourceHint){
   const rows = parseCSV(text);
   if(!rows.length) return 0;
   const header = rows[0].map(h=>h.trim());
-  const idx = (names)=>{ for(const n of names){ const i=header.findIndex(h=>h.includes(n)); if(i>=0) return i; } return -1; };
   const ci = {
-    tags: idx(['태그']), author: idx(['작성자']), handle: idx(['계정']),
-    content: idx(['내용']), image: idx(['이미지']), video: idx(['동영상']),
-    date: idx(['날짜']), link: idx(['링크','URL']),
+    tags: headerIndex(header, ['태그','tags','tag','분류']),
+    author: headerIndex(header, ['작성자','author','작가','출처']),
+    handle: headerIndex(header, ['계정','handle','username','아이디']),
+    content: headerIndex(header, ['내용','description','설명','메모','note','summary']),
+    title: headerIndex(header, ['제목','name','title','이름']),
+    image: headerIndex(header, ['이미지','image','cover','썸네일','thumbnail']),
+    video: headerIndex(header, ['동영상','video']),
+    date: headerIndex(header, ['날짜','date','created','생성']),
+    link: headerIndex(header, ['링크','url','link','주소','website']),
   };
+  const source = sourceHint || detectCsvSource(header);
   const existing = new Set(state.bookmarks.map(b=>b.postUrl).filter(Boolean));
   let added=0;
   for(let r=1;r<rows.length;r++){
@@ -597,21 +646,46 @@ function importCSV(text){
     const postUrl = get(ci.link);
     if(postUrl && existing.has(postUrl)) continue;
     const tagsRaw = get(ci.tags);
+    const content = get(ci.content) || get(ci.title);
     const bm = {
       id: postUrl || uid(),
-      tags: tagsRaw ? tagsRaw.split('/').map(s=>s.trim()).filter(Boolean) : [],
+      tags: splitTags(tagsRaw),
       author: get(ci.author), handle: get(ci.handle),
-      content: get(ci.content),
+      content,
       imageUrl: (get(ci.image).split('|')[0]||'').trim(),
-      hasVideo: get(ci.video).toUpperCase()==='Y',
+      hasVideo: /^(y|yes|true|1)$/i.test(get(ci.video)),
       date: get(ci.date), postUrl,
       links: [], folderId: null,
+      source,
     };
     state.bookmarks.push(bm);
     if(postUrl) existing.add(postUrl);
     added++;
   }
   save(); return added;
+}
+function importCsvTexts(items, sourceHint){
+  if(!items || !items.length) return 0;
+  let total=0;
+  for(const item of items) total += importCSV(item.text, sourceHint);
+  return total;
+}
+function mergeBookmarks(incoming){
+  const existing = new Set(state.bookmarks.map(b=>b.postUrl).filter(Boolean));
+  let added=0;
+  for(const bm of incoming||[]){
+    if(!bm) continue;
+    if(bm.postUrl && existing.has(bm.postUrl)) continue;
+    state.bookmarks.push(bm);
+    if(bm.postUrl) existing.add(bm.postUrl);
+    added++;
+  }
+  save();
+  return added;
+}
+function finishCsvImport(fileCount, added){
+  state.ui.page=1; render();
+  showToast(`${fileCount}개 파일에서 ${added}개의 새 북마크를 불러왔어요. (이미 있던 항목은 건너뜀)`);
 }
 
 /* ============================================================
@@ -901,7 +975,7 @@ function renderMain(){
   syncSortDropUI(state.ui.sort||'new');
   const cards=document.getElementById('cards'); cards.innerHTML='';
   const list=viewBookmarks();
-  if(!list.length){ cards.innerHTML='<div class="empty">표시할 북마크가 없어요.<br>좌측 [불러오기]로 CSV를 가져오거나 다른 폴더를 선택해 보세요.</div>'; return; }
+  if(!list.length){ cards.innerHTML='<div class="empty">표시할 북마크가 없어요.<br>좌측 [불러오기]로 .bookmark 폴더의 CSV를 가져오거나,<br>다른 경로에서 불러와 보세요.</div>'; return; }
   if(state.ui.sort==='custom'){
     cards.insertAdjacentHTML('beforeend','<div class="empty" style="padding:6px 0 0;grid-column:1/-1;font-size:12.5px">↕ 카드를 드래그해 순서를 바꿀 수 있어요</div>');
   }
@@ -1768,15 +1842,34 @@ function importCSVFiles(fileList){
     r.onload=()=>{
       total+=importCSV(r.result);
       done++;
-      if(done===files.length){
-        state.ui.page=1; render();
-        showToast(`${files.length}개 파일에서 ${total}개의 새 북마크를 불러왔어요. (이미 있던 항목은 건너뜀)`);
-      }
+      if(done===files.length) finishCsvImport(files.length, total);
     };
     r.readAsText(f,'utf-8');
   });
 }
-document.getElementById('btnLoad').onclick=()=>document.getElementById('csvFile').click();
+async function loadDefaultCsvs(){
+  if(!(window.electronAPI && window.electronAPI.loadDefaultCsvs)){
+    showToast('기본 경로는 데스크톱 앱에서만 사용할 수 있어요. 다른 경로에서 불러오기를 이용해 주세요.');
+    return;
+  }
+  const res=await window.electronAPI.loadDefaultCsvs();
+  if(!res.files.length){
+    showToast(`.bookmark 폴더에 CSV를 넣어 주세요${res.dir ? ' ('+res.dir+')' : ''}`);
+    return;
+  }
+  finishCsvImport(res.files.length, importCsvTexts(res.files));
+}
+async function loadCsvFromOtherPath(){
+  if(window.electronAPI && window.electronAPI.pickCsvFiles){
+    const files=await window.electronAPI.pickCsvFiles();
+    if(!files.length) return;
+    finishCsvImport(files.length, importCsvTexts(files));
+    return;
+  }
+  document.getElementById('csvFile').click();
+}
+document.getElementById('btnLoad').onclick=()=>loadDefaultCsvs();
+document.getElementById('btnLoadOther').onclick=()=>loadCsvFromOtherPath();
 document.getElementById('csvFile').onchange=e=>{
   const files=[...e.target.files]; if(!files.length) return;
   importCSVFiles(files);

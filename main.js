@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -8,6 +8,14 @@ let win;
 // ── 사용자 데이터 파일 저장 (localStorage 대신 실제 파일에 저장해서 유실 방지) ──
 function getDataFilePath() {
   return path.join(app.getPath('userData'), 'bookmark-data.json');
+}
+
+function getBookmarkDir() {
+  const dir = app.isPackaged
+    ? path.join(app.getPath('userData'), '.bookmark')
+    : path.join(__dirname, '.bookmark');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 ipcMain.handle('data:load', () => {
@@ -25,6 +33,32 @@ ipcMain.on('data:save', (event, json) => {
     fs.writeFileSync(tmp, json, 'utf-8');
     fs.renameSync(tmp, p); // 원자적 교체: 저장 도중 앱이 죽어도 기존 파일이 깨지지 않음
   } catch (e) {}
+});
+
+ipcMain.handle('csv:loadDefault', () => {
+  const dir = getBookmarkDir();
+  const files = fs.readdirSync(dir).filter((f) => /\.csv$/i.test(f));
+  return {
+    dir,
+    files: files.map((name) => ({
+      name,
+      text: fs.readFileSync(path.join(dir, name), 'utf-8'),
+    })),
+  };
+});
+
+ipcMain.handle('csv:pickFiles', async () => {
+  const result = await dialog.showOpenDialog(win, {
+    title: 'CSV 불러오기',
+    defaultPath: getBookmarkDir(),
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'CSV', extensions: ['csv'] }],
+  });
+  if (result.canceled || !result.filePaths.length) return [];
+  return result.filePaths.map((p) => ({
+    name: path.basename(p),
+    text: fs.readFileSync(p, 'utf-8'),
+  }));
 });
 
 function createWindow() {
@@ -54,6 +88,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  getBookmarkDir();
   createWindow();
 
   // 업데이트 확인 (앱 시작 3초 후)
