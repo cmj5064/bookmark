@@ -12,8 +12,8 @@
     "dist": "electron-builder --win --mac"
   },
   "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.3"
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -21,14 +21,22 @@
   "build": {
     "appId": "com.minasang.bookmark-organizer",
     "productName": "BMBOX",
-    "files": ["main.js", "preload.js", "index.html", "build/**/*"],
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "build/**/*"
+    ],
     "publish": {
       "provider": "github",
       "releaseType": "release"
     },
     "win": {
       "icon": "build/icon.ico",
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -38,14 +46,23 @@
     "mac": {
       "icon": "build/icon.icns",
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.productivity"
     },
     "dmg": {
       "title": "BMBOX",
       "background": null,
-      "window": { "width": 540, "height": 380 }
+      "window": {
+        "width": 540,
+        "height": 380
+      }
     }
   }
 }
