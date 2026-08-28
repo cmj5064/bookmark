@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   installUpdate: () => ipcRenderer.send('install-update'),
   loadData: () => ipcRenderer.invoke('data:load'),
   saveData: (json) => ipcRenderer.send('data:save', json),
+  loadDefaultCsvs: () => ipcRenderer.invoke('csv:loadDefault'),
+  pickCsvFiles: () => ipcRenderer.invoke('csv:pickFiles'),
 });
