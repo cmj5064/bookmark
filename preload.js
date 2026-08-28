@@ -9,4 +9,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveData: (json) => ipcRenderer.send('data:save', json),
   loadDefaultCsvs: () => ipcRenderer.invoke('csv:loadDefault'),
   pickCsvFiles: () => ipcRenderer.invoke('csv:pickFiles'),
+  getNotionConfig: () => ipcRenderer.invoke('notion:getConfig'),
+  saveNotionConfig: (cfg) => ipcRenderer.invoke('notion:saveConfig', cfg),
+  testNotion: () => ipcRenderer.invoke('notion:test'),
+  importNotion: () => ipcRenderer.invoke('notion:import'),
 });
